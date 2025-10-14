@@ -1,10 +1,11 @@
 # Go Order System
 
+[![Go Report Card](https://goreportcard.com/badge/github.com/elokanugrah/go-order-system)](https://goreportcard.com/report/github.com/elokanugrah/go-order-system)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
 A backend service for a simple order processing system, built with Go, demonstrating Clean Architecture and Event-Driven patterns.
 
 The system features a REST API for managing products and orders, and a separate Worker Service that processes events asynchronously using RabbitMQ.
-
-[](https://www.google.com/search?q=https://goreportcard.com/report/github.com/elokanugrah/go-order-system)
 
 ## Core Concepts
 
