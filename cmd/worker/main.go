@@ -43,7 +43,7 @@ func main() {
 	msgs, err := ch.Consume(
 		q.Name,
 		"order-worker", // consumer name
-		true,           // auto-ack
+		false,          // auto-ack
 		false,          // exclusive
 		false,          // no-local
 		false,          // no-wait
@@ -57,7 +57,21 @@ func main() {
 	go func() {
 		for d := range msgs {
 			log.Printf("Received a message: %s", d.Body)
-			processMessage(d.Body)
+			if err := processMessage(d.Body); err != nil {
+				log.Printf("ERROR: Failed to process message: %v. Message will be requeued.", err)
+				// Nack (Negative Acknowledge) - let RabbitMQ know message failed to process
+				// First param: multiple (false, only for this message)
+				// Second param: requeue (true, return message to queue)
+				if nackErr := d.Nack(false, true); nackErr != nil {
+					log.Printf("ERROR: Failed to Nack message: %v", nackErr)
+				}
+			} else {
+				// Ack (Acknowledge) - let RabbitMQ know message process successfully
+				// Parameter: multiple (false, only for this message)
+				if ackErr := d.Ack(false); ackErr != nil {
+					log.Printf("ERROR: Failed to Ack message: %v", ackErr)
+				}
+			}
 		}
 	}()
 
@@ -74,15 +88,25 @@ func main() {
 }
 
 // A helper function to process the message payload.
-func processMessage(body []byte) {
+func processMessage(body []byte) error {
 	time.Sleep(2 * time.Second) // Simulate a 2-second task
 
 	var payload map[string]interface{}
-	if err := json.Unmarshal(body, &payload); err == nil {
-		if orderID, ok := payload["order_id"]; ok {
-			log.Printf("[WORKER] Finished processing confirmation for Order ID: %.0f", orderID)
-		}
-	} else {
+	if err := json.Unmarshal(body, &payload); err != nil {
 		log.Printf("[WORKER] ERROR: Failed to unmarshal message: %v", err)
+		return err
 	}
+
+	if orderID, ok := payload["order_id"]; ok {
+		log.Printf("[WORKER] Finished processing confirmation for Order ID: %.0f", orderID)
+	} else {
+		log.Println("[WORKER] WARNING: order_id not found in message payload.")
+	}
+
+	// Example failed simulation
+	// if rand.Intn(10) < 3 { // 30% chance of failure
+	//     return errors.New("simulated processing failure")
+	// }
+
+	return nil
 }
