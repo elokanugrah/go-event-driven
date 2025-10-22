@@ -1,10 +1,11 @@
 # Go Order System
 
+[![Go Report Card](https://goreportcard.com/badge/github.com/elokanugrah/go-order-system)](https://goreportcard.com/report/github.com/elokanugrah/go-order-system)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
 A backend service for a simple order processing system, built with Go, demonstrating Clean Architecture and Event-Driven patterns.
 
 The system features a REST API for managing products and orders, and a separate Worker Service that processes events asynchronously using RabbitMQ.
-
-[](https://www.google.com/search?q=https://goreportcard.com/report/github.com/elokanugrah/go-order-system)
 
 ## Core Concepts
 
@@ -35,23 +36,18 @@ The system features a REST API for managing products and orders, and a separate 
   * `migrate-cli`
   * `mockery`
 
-## Tooling Installation
+### Tooling Installation
 
-### migrate-CLI
+  * `migrate-cli` is a command-line tool for managing database migrations.
 
-`migrate-cli` is a command-line tool for managing database migrations.
-
-```bash
-go install -tags 'postgres' [github.com/golang-migrate/migrate/v4/cmd/migrate@latest](https://github.com/golang-migrate/migrate/v4/cmd/migrate@latest)
-```
-
-### Mockery
-
-`mockery` is a tool for automatically generating mocks for your Go interfaces.
-
-```bash
-go install [github.com/vektra/mockery/v2@latest](https://github.com/vektra/mockery/v2@latest)
-```
+    ```bash
+    go install -tags 'postgres' [github.com/golang-migrate/migrate/v4/cmd/migrate@latest](https://github.com/golang-migrate/migrate/v4/cmd/migrate@latest)
+    ```
+  * `mockery` is a tool for automatically generating mocks for your Go interfaces.
+  
+    ```bash
+    go install [github.com/vektra/mockery/v2@latest](https://github.com/vektra/mockery/v2@latest)
+    ```
 
 ### Running with Docker
 
