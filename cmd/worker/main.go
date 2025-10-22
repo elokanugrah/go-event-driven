@@ -2,7 +2,10 @@ package main
 
 import (
 	"encoding/json"
+	"errors"
+	"fmt"
 	"log"
+	"math/rand"
 	"os"
 	"os/signal"
 	"syscall"
@@ -104,9 +107,11 @@ func processMessage(body []byte) error {
 	}
 
 	// Example failed simulation
-	// if rand.Intn(10) < 3 { // 30% chance of failure
-	//     return errors.New("simulated processing failure")
-	// }
+	x := rand.Intn(10)
+	if x < 3 { // 30% chance of failure
+		fmt.Println()
+		return errors.New("simulated processing failure")
+	}
 
 	return nil
 }
