@@ -5,7 +5,7 @@ package mocks
 import (
 	context "context"
 
-	domain "github.com/elokanugrah/go-order-system/internal/domain"
+	domain "github.com/elokanugrah/go-event-driven/internal/domain"
 	mock "github.com/stretchr/testify/mock"
 )
 

@@ -6,10 +6,10 @@ import (
 	"log"
 	"testing"
 
-	"github.com/elokanugrah/go-order-system/internal/config"
-	"github.com/elokanugrah/go-order-system/internal/database"
-	"github.com/elokanugrah/go-order-system/internal/domain"
-	"github.com/elokanugrah/go-order-system/internal/repository/postgres"
+	"github.com/elokanugrah/go-event-driven/internal/config"
+	"github.com/elokanugrah/go-event-driven/internal/database"
+	"github.com/elokanugrah/go-event-driven/internal/domain"
+	"github.com/elokanugrah/go-event-driven/internal/repository/postgres"
 	"github.com/stretchr/testify/suite"
 )
 

@@ -3,7 +3,7 @@ package usecase
 import (
 	"context"
 
-	"github.com/elokanugrah/go-order-system/internal/domain"
+	"github.com/elokanugrah/go-event-driven/internal/domain"
 )
 
 //go:generate mockery --name ProductRepository --output ./mocks --case=snake

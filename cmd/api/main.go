@@ -9,13 +9,13 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/elokanugrah/go-order-system/internal/config"
-	"github.com/elokanugrah/go-order-system/internal/database"
-	"github.com/elokanugrah/go-order-system/internal/messagebroker"
-	"github.com/elokanugrah/go-order-system/internal/repository/postgres"
-	"github.com/elokanugrah/go-order-system/internal/usecase"
+	"github.com/elokanugrah/go-event-driven/internal/config"
+	"github.com/elokanugrah/go-event-driven/internal/database"
+	"github.com/elokanugrah/go-event-driven/internal/messagebroker"
+	"github.com/elokanugrah/go-event-driven/internal/repository/postgres"
+	"github.com/elokanugrah/go-event-driven/internal/usecase"
 
-	httpDelivery "github.com/elokanugrah/go-order-system/internal/delivery/http"
+	httpDelivery "github.com/elokanugrah/go-event-driven/internal/delivery/http"
 
 	_ "github.com/lib/pq"
 )

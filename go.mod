@@ -1,4 +1,4 @@
-module github.com/elokanugrah/go-order-system
+module github.com/elokanugrah/go-event-driven
 
 go 1.23.0
 

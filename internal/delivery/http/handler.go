@@ -1,7 +1,7 @@
 package http
 
 import (
-	"github.com/elokanugrah/go-order-system/internal/usecase"
+	"github.com/elokanugrah/go-event-driven/internal/usecase"
 )
 
 type Handler struct {

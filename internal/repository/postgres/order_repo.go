@@ -8,8 +8,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/elokanugrah/go-order-system/internal/domain"
-	"github.com/elokanugrah/go-order-system/internal/usecase"
+	"github.com/elokanugrah/go-event-driven/internal/domain"
+	"github.com/elokanugrah/go-event-driven/internal/usecase"
 )
 
 // Ensure PostgresOrderRepository implements the usecase.OrderRepository interface.

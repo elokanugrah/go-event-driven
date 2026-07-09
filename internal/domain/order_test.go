@@ -4,7 +4,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/elokanugrah/go-order-system/internal/domain"
+	"github.com/elokanugrah/go-event-driven/internal/domain"
 	"github.com/stretchr/testify/assert"
 )
 

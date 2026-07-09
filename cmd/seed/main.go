@@ -7,8 +7,8 @@ import (
 	"math/rand"
 	"time"
 
-	"github.com/elokanugrah/go-order-system/internal/config"
-	"github.com/elokanugrah/go-order-system/internal/database"
+	"github.com/elokanugrah/go-event-driven/internal/config"
+	"github.com/elokanugrah/go-event-driven/internal/database"
 
 	"github.com/go-faker/faker/v4"
 	_ "github.com/lib/pq" // PostgreSQL driver

@@ -11,7 +11,7 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/elokanugrah/go-order-system/internal/config"
+	"github.com/elokanugrah/go-event-driven/internal/config"
 	amqp "github.com/rabbitmq/amqp091-go"
 )
 

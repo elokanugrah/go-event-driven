@@ -4,7 +4,7 @@ import (
 	"database/sql"
 	"log"
 
-	"github.com/elokanugrah/go-order-system/internal/config"
+	"github.com/elokanugrah/go-event-driven/internal/config"
 )
 
 func NewConnection(cfg *config.Config) *sql.DB {

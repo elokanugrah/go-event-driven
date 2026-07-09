@@ -4,8 +4,8 @@ import (
 	"context"
 	"errors"
 
-	"github.com/elokanugrah/go-order-system/internal/domain"
-	"github.com/elokanugrah/go-order-system/internal/dto"
+	"github.com/elokanugrah/go-event-driven/internal/domain"
+	"github.com/elokanugrah/go-event-driven/internal/dto"
 )
 
 var ErrProductNotFound = errors.New("product not found")

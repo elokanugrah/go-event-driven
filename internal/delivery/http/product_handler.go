@@ -5,8 +5,8 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/elokanugrah/go-order-system/internal/dto"
-	"github.com/elokanugrah/go-order-system/internal/usecase"
+	"github.com/elokanugrah/go-event-driven/internal/dto"
+	"github.com/elokanugrah/go-event-driven/internal/usecase"
 	"github.com/gin-gonic/gin"
 )
 

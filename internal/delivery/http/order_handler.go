@@ -4,8 +4,8 @@ import (
 	"errors"
 	"net/http"
 
-	"github.com/elokanugrah/go-order-system/internal/domain"
-	"github.com/elokanugrah/go-order-system/internal/dto"
+	"github.com/elokanugrah/go-event-driven/internal/domain"
+	"github.com/elokanugrah/go-event-driven/internal/dto"
 	"github.com/gin-gonic/gin"
 )
 

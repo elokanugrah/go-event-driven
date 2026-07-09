@@ -5,7 +5,7 @@ import (
 	"database/sql"
 	"fmt"
 
-	"github.com/elokanugrah/go-order-system/internal/usecase"
+	"github.com/elokanugrah/go-event-driven/internal/usecase"
 )
 
 // txKey is the key used to store the transaction object in the context.

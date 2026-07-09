@@ -5,10 +5,10 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/elokanugrah/go-order-system/internal/domain"
-	"github.com/elokanugrah/go-order-system/internal/dto"
-	"github.com/elokanugrah/go-order-system/internal/usecase"
-	"github.com/elokanugrah/go-order-system/internal/usecase/mocks"
+	"github.com/elokanugrah/go-event-driven/internal/domain"
+	"github.com/elokanugrah/go-event-driven/internal/dto"
+	"github.com/elokanugrah/go-event-driven/internal/usecase"
+	"github.com/elokanugrah/go-event-driven/internal/usecase/mocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 )
