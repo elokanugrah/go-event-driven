@@ -1,7 +1,5 @@
 # Go Event Driven: A Production-Ready Architectural Blueprint
 
-![Event Driven Architecture Concept](docs/images/repo_marketing_cover.png)
-
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Go Version](https://img.shields.io/github/go-mod/go-version/elokanugrah/go-event-driven)](https://github.com/elokanugrah/go-event-driven)
 [![Architecture: Clean + Event-Driven](https://img.shields.io/badge/Architecture-Clean%20%2B%20Event--Driven-blue)](https://github.com/elokanugrah/go-event-driven)
@@ -23,20 +21,20 @@ This project solves that by decoupling operations:
 
 ---
 
-## 🛡️ Enterprise-Grade Reliability & Resilience
+## 🛡️ Enterprise-Grade Reliability (Built for the Real World)
 
-Most basic event-driven applications suffer from two critical flaws under production traffic: **Dual Writes** and **Race Conditions**. This blueprint solves both.
+Many apps fail when thousands of users try to buy things at once, or when a server crashes unexpectedly. This blueprint is designed to never lose an order and never double-sell a product.
 
-### 1. The Dual-Write Problem & The Transactional Outbox Pattern
-**The Problem**: A service needs to update its database and send an event to RabbitMQ. If it updates the database but the network drops before sending the event, the downstream systems never know about the order. If it sends the event first but the database update fails, the customer gets a confirmation for a purchase that does not exist.
-**The Solution**: We implement the **Transactional Outbox Pattern**. 
-1. The API saves the order and inserts the event payload into a local `outbox_events` table **inside the same database transaction**. If the order fails, the outbox event rolls back.
-2. A background process (**Outbox Publisher**) polls the outbox table, publishes pending messages to RabbitMQ, and updates their status to `processed` upon success.
-3. This guarantees **At-Least-Once Delivery**—even during service crashes, database restarts, or broker disconnects, no event is ever lost.
+### 1. No Lost Orders (The "Outbox" Pattern)
+**The Problem:** Imagine a restaurant where the cashier takes your payment but the ticket never reaches the kitchen. In software, if a system saves your order but crashes before notifying the shipping department, your order is lost.
+**The Solution:** We use a fail-proof "Outbox".
+1. When you check out, the system saves the order and simultaneously writes a "needs processing" note in a secure outbox.
+2. A dedicated background worker continuously checks this outbox and hands the notes to the downstream services (like shipping and email).
+3. **The Result:** Even if the power goes out, the database crashes, or the network drops, no event is ever lost. The system will resume exactly where it left off.
 
-### 2. Double-Selling Prevention (Pessimistic Concurrency Control)
-**The Problem**: If 100 users try to buy the last single item in stock at the exact same millisecond, a standard validation check will approve all of them, causing negative inventory or overselling.
-**The Solution**: We apply row-level database locking (`FOR UPDATE`) when checking stock levels. Concurrent purchase transactions must wait in line for the lock, guaranteeing that inventory changes are strictly ordered and validated.
+### 2. No Double-Selling (Concurrency Control)
+**The Problem:** Imagine there is only 1 concert ticket left, and 100 people click "Buy" at the exact same millisecond. Basic systems will think there is 1 ticket available for all 100 people, leading to 99 angry customers.
+**The Solution:** We apply strict database locks during checkout. It acts like a digital bouncer, forcing those 100 simultaneous requests into a single-file line that gets processed one-by-one in milliseconds. Only the true first person gets the ticket, and the remaining 99 are correctly told the item is sold out.
 
 ---
 
