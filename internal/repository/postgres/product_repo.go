@@ -18,6 +18,20 @@ type PostgresProductRepository struct {
 	db *sql.DB
 }
 
+func NewProductRepository(db *sql.DB) *PostgresProductRepository {
+	return &PostgresProductRepository{db: db}
+}
+
+// getQuerier extracts a transaction from the context if it exists,
+// otherwise it returns the base database connection.
+func (r *PostgresProductRepository) getQuerier(ctx context.Context) querier {
+	tx, ok := ctx.Value(txKey{}).(*sql.Tx)
+	if ok {
+		return tx
+	}
+	return r.db
+}
+
 // Save inserts a new product into the database.
 func (r *PostgresProductRepository) Save(ctx context.Context, product *domain.Product) error {
 	query := `INSERT INTO products (name, price, quantity, created_at, updated_at) 
@@ -25,7 +39,7 @@ func (r *PostgresProductRepository) Save(ctx context.Context, product *domain.Pr
 			   RETURNING id, created_at, updated_at`
 
 	now := time.Now()
-	err := r.db.QueryRowContext(ctx, query,
+	err := r.getQuerier(ctx).QueryRowContext(ctx, query,
 		product.Name,
 		product.Price,
 		product.Quantity,
@@ -46,7 +60,7 @@ func (r *PostgresProductRepository) Update(ctx context.Context, product *domain.
 			   SET name = $1, price = $2, quantity = $3, updated_at = $4 
 			   WHERE id = $5`
 
-	result, err := r.db.ExecContext(ctx, query,
+	result, err := r.getQuerier(ctx).ExecContext(ctx, query,
 		product.Name,
 		product.Price,
 		product.Quantity,
@@ -72,7 +86,7 @@ func (r *PostgresProductRepository) Update(ctx context.Context, product *domain.
 func (r *PostgresProductRepository) Delete(ctx context.Context, id int64) error {
 	query := `DELETE FROM products WHERE id = $1`
 
-	result, err := r.db.ExecContext(ctx, query, id)
+	result, err := r.getQuerier(ctx).ExecContext(ctx, query, id)
 	if err != nil {
 		return fmt.Errorf("error deleting product: %w", err)
 	}
@@ -95,7 +109,7 @@ func (r *PostgresProductRepository) FindAll(ctx context.Context, limit int, offs
 			   ORDER BY id ASC 
 			   LIMIT $1 OFFSET $2`
 
-	rows, err := r.db.QueryContext(ctx, query, limit, offset)
+	rows, err := r.getQuerier(ctx).QueryContext(ctx, query, limit, offset)
 	if err != nil {
 		return nil, fmt.Errorf("error querying products: %w", err)
 	}
@@ -122,7 +136,7 @@ func (r *PostgresProductRepository) FindByID(ctx context.Context, id int64) (*do
 	query := `SELECT id, name, price, quantity, created_at, updated_at FROM products WHERE id = $1`
 	var p domain.Product
 
-	err := r.db.QueryRowContext(ctx, query, id).Scan(
+	err := r.getQuerier(ctx).QueryRowContext(ctx, query, id).Scan(
 		&p.ID, &p.Name, &p.Price, &p.Quantity, &p.CreatedAt, &p.UpdatedAt,
 	)
 
@@ -142,7 +156,7 @@ func (r *PostgresProductRepository) FindManyByIDs(ctx context.Context, ids []int
 			   FROM products 
 			   WHERE id = ANY($1)`
 
-	rows, err := r.db.QueryContext(ctx, query, pq.Array(ids))
+	rows, err := r.getQuerier(ctx).QueryContext(ctx, query, pq.Array(ids))
 	if err != nil {
 		return nil, fmt.Errorf("error querying products by ids: %w", err)
 	}
@@ -164,6 +178,32 @@ func (r *PostgresProductRepository) FindManyByIDs(ctx context.Context, ids []int
 	return products, nil
 }
 
-func NewProductRepository(db *sql.DB) *PostgresProductRepository {
-	return &PostgresProductRepository{db: db}
+// FindManyByIDsForUpdate retrieves multiple products and locks the rows for update.
+func (r *PostgresProductRepository) FindManyByIDsForUpdate(ctx context.Context, ids []int64) ([]domain.Product, error) {
+	query := `SELECT id, name, price, quantity, created_at, updated_at 
+			   FROM products 
+			   WHERE id = ANY($1) 
+			   FOR UPDATE`
+
+	rows, err := r.getQuerier(ctx).QueryContext(ctx, query, pq.Array(ids))
+	if err != nil {
+		return nil, fmt.Errorf("error querying products by ids for update: %w", err)
+	}
+	defer rows.Close()
+
+	var products []domain.Product
+	for rows.Next() {
+		var p domain.Product
+		if err := rows.Scan(&p.ID, &p.Name, &p.Price, &p.Quantity, &p.CreatedAt, &p.UpdatedAt); err != nil {
+			return nil, fmt.Errorf("error scanning product row: %w", err)
+		}
+		products = append(products, p)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("error during rows iteration: %w", err)
+	}
+
+	return products, nil
 }
+

@@ -14,6 +14,7 @@ type ProductRepository interface {
 	// Read
 	FindByID(ctx context.Context, id int64) (*domain.Product, error)
 	FindManyByIDs(ctx context.Context, ids []int64) ([]domain.Product, error)
+	FindManyByIDsForUpdate(ctx context.Context, ids []int64) ([]domain.Product, error)
 	FindAll(ctx context.Context, limit, offset int) ([]domain.Product, error)
 
 	// Update
@@ -29,6 +30,13 @@ type OrderRepository interface {
 	Save(ctx context.Context, order *domain.Order) error
 }
 
+//go:generate mockery --name OutboxRepository --output ./mocks --case=snake
+type OutboxRepository interface {
+	Save(ctx context.Context, event *domain.OutboxEvent) error
+	FindPending(ctx context.Context, limit int) ([]domain.OutboxEvent, error)
+	UpdateStatus(ctx context.Context, id int64, status domain.OutboxStatus) error
+}
+
 // TransactionManager defines the contract for database transaction management.
 // This allows use cases to run operations within a single transaction
 // without being coupled to a specific database implementation.
@@ -42,3 +50,4 @@ type TransactionManager interface {
 type MessageBroker interface {
 	Publish(ctx context.Context, queueName string, message []byte) error
 }
+

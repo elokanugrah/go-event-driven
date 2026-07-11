@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"log"
 
 	"github.com/elokanugrah/go-event-driven/internal/domain"
 	"github.com/elokanugrah/go-event-driven/internal/dto"
@@ -14,16 +13,15 @@ type OrderUseCase struct {
 	orderRepo   OrderRepository
 	productRepo ProductRepository
 	txManager   TransactionManager
-	broker      MessageBroker
+	outboxRepo  OutboxRepository
 }
 
-// penambahan parameter mb
-func NewOrderUseCase(or OrderRepository, pr ProductRepository, tm TransactionManager, mb MessageBroker) *OrderUseCase {
+func NewOrderUseCase(or OrderRepository, pr ProductRepository, tm TransactionManager, outboxRepo OutboxRepository) *OrderUseCase {
 	return &OrderUseCase{
 		orderRepo:   or,
 		productRepo: pr,
 		txManager:   tm,
-		broker:      mb,
+		outboxRepo:  outboxRepo,
 	}
 }
 
@@ -48,8 +46,8 @@ func (uc *OrderUseCase) CreateOrder(ctx context.Context, input dto.CreateOrderIn
 			itemMap[item.ProductID] = item
 		}
 
-		// Fetch all required products from the database.
-		products, err := uc.productRepo.FindManyByIDs(txCtx, productIDs)
+		// Fetch all required products from the database and lock their rows.
+		products, err := uc.productRepo.FindManyByIDsForUpdate(txCtx, productIDs)
 		if err != nil {
 			return err
 		}
@@ -100,26 +98,31 @@ func (uc *OrderUseCase) CreateOrder(ctx context.Context, input dto.CreateOrderIn
 			}
 		}
 
+		// Create the outbox event payload inside the same SQL transaction.
+		eventPayload, err := json.Marshal(map[string]interface{}{
+			"order_id": createdOrder.ID,
+			"user_id":  createdOrder.UserID,
+		})
+		if err != nil {
+			return err
+		}
+
+		outboxEvent := &domain.OutboxEvent{
+			EventType: "orders.created",
+			Payload:   eventPayload,
+			Status:    domain.OutboxStatusPending,
+		}
+
+		if err := uc.outboxRepo.Save(txCtx, outboxEvent); err != nil {
+			return err
+		}
+
 		return nil
 	})
 	if err != nil {
 		return nil, err
 	}
 
-	// Create the message payload
-	eventPayload, err := json.Marshal(map[string]interface{}{
-		"order_id": createdOrder.ID,
-		"user_id":  createdOrder.UserID,
-	})
-	if err != nil {
-		log.Printf("ERROR: failed to marshal event payload for order %d: %v", createdOrder.ID, err)
-	} else {
-		// Publish the event.
-		err = uc.broker.Publish(ctx, "orders.created", eventPayload)
-		if err != nil {
-			log.Printf("ERROR: failed to publish order.created event for order %d: %v", createdOrder.ID, err)
-		}
-	}
-
 	return createdOrder, nil
 }
+

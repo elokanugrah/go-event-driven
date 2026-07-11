@@ -38,16 +38,25 @@ func main() {
 	productRepo := postgres.NewProductRepository(db)
 	orderRepo := postgres.NewOrderRepository(db)
 	txManager := postgres.NewTransactionManager(db)
+	outboxRepo := postgres.NewOutboxRepository(db)
 
 	// Initialize Usecase Layer
 	productUseCase := usecase.NewProductUseCase(productRepo)
-	orderUseCase := usecase.NewOrderUseCase(orderRepo, productRepo, txManager, mb)
+	orderUseCase := usecase.NewOrderUseCase(orderRepo, productRepo, txManager, outboxRepo)
+	outboxPublisher := usecase.NewOutboxPublisher(outboxRepo, txManager, mb, 200*time.Millisecond)
 
 	// Initialize Delivery Layer (Handler)
 	apiHandler := httpDelivery.NewHandler(productUseCase, orderUseCase)
 
 	// Setup Router
 	router := httpDelivery.SetupRouter(apiHandler)
+
+	// Context to govern background workers
+	bgCtx, bgCancel := context.WithCancel(context.Background())
+	defer bgCancel()
+
+	// Start Outbox Publisher in background
+	go outboxPublisher.Start(bgCtx)
 
 	// --- GRACEFUL SHUTDOWN SETUP ---
 	srv := &http.Server{
@@ -65,12 +74,12 @@ func main() {
 
 	// Wait for interrupt signal to gracefully shutdown the server with a timeout.
 	quit := make(chan os.Signal, 1)
-	// kill (no param) default send syscall.SIGTERM
-	// kill -2 is syscall.SIGINT
-	// kill -9 is syscall.SIGKILL but can't be caught, so don't need to add it
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 	<-quit
 	log.Println("Shutting down server...")
+
+	// Cancel background workers context
+	bgCancel()
 
 	// The context is used to inform the server it has 5 seconds to finish
 	// the request it is currently handling
