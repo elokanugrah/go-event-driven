@@ -126,3 +126,101 @@ func (s *OrderRepositorySuite) TestSave() {
 
 	tx.Commit()
 }
+
+func (s *OrderRepositorySuite) TestFindByID() {
+	assert := s.Suite.Assert()
+	ctx := context.Background()
+
+	product1 := &domain.Product{Name: "Laptop", Price: 15000000, Quantity: 10}
+	err := s.productRepo.Save(ctx, product1)
+	assert.NoError(err)
+
+	order := &domain.Order{
+		UserID: 123,
+		Status: domain.StatusPending,
+		OrderItems: []domain.OrderItem{
+			{Product: *product1, Quantity: 1, PriceAtOrder: product1.Price},
+		},
+	}
+	order.CalculateTotalAmount()
+
+	err = s.orderRepo.Save(ctx, order)
+	assert.NoError(err)
+
+	foundOrder, err := s.orderRepo.FindByID(ctx, order.ID)
+	assert.NoError(err)
+	assert.NotNil(foundOrder)
+	assert.Equal(order.ID, foundOrder.ID)
+	assert.Equal(order.UserID, foundOrder.UserID)
+	assert.Equal(order.TotalAmount, foundOrder.TotalAmount)
+	assert.Equal(order.Status, foundOrder.Status)
+	assert.Len(foundOrder.OrderItems, 1)
+	assert.Equal(product1.ID, foundOrder.OrderItems[0].Product.ID)
+	assert.Equal(product1.Name, foundOrder.OrderItems[0].Product.Name)
+}
+
+func (s *OrderRepositorySuite) TestFindAll() {
+	assert := s.Suite.Assert()
+	ctx := context.Background()
+
+	product1 := &domain.Product{Name: "Laptop", Price: 15000000, Quantity: 10}
+	err := s.productRepo.Save(ctx, product1)
+	assert.NoError(err)
+
+	order1 := &domain.Order{
+		UserID: 123,
+		Status: domain.StatusPending,
+		OrderItems: []domain.OrderItem{
+			{Product: *product1, Quantity: 1, PriceAtOrder: product1.Price},
+		},
+	}
+	order1.CalculateTotalAmount()
+	err = s.orderRepo.Save(ctx, order1)
+	assert.NoError(err)
+
+	order2 := &domain.Order{
+		UserID: 456,
+		Status: domain.StatusCompleted,
+		OrderItems: []domain.OrderItem{
+			{Product: *product1, Quantity: 2, PriceAtOrder: product1.Price},
+		},
+	}
+	order2.CalculateTotalAmount()
+	err = s.orderRepo.Save(ctx, order2)
+	assert.NoError(err)
+
+	orders, err := s.orderRepo.FindAll(ctx, 10, 0)
+	assert.NoError(err)
+	assert.Len(orders, 2)
+	assert.Equal(order2.ID, orders[0].ID) // Order by ID DESC
+	assert.Equal(order1.ID, orders[1].ID)
+}
+
+func (s *OrderRepositorySuite) TestUpdate() {
+	assert := s.Suite.Assert()
+	ctx := context.Background()
+
+	product1 := &domain.Product{Name: "Laptop", Price: 15000000, Quantity: 10}
+	err := s.productRepo.Save(ctx, product1)
+	assert.NoError(err)
+
+	order := &domain.Order{
+		UserID: 123,
+		Status: domain.StatusPending,
+		OrderItems: []domain.OrderItem{
+			{Product: *product1, Quantity: 1, PriceAtOrder: product1.Price},
+		},
+	}
+	order.CalculateTotalAmount()
+	err = s.orderRepo.Save(ctx, order)
+	assert.NoError(err)
+
+	order.Status = domain.StatusCompleted
+	err = s.orderRepo.Update(ctx, order)
+	assert.NoError(err)
+
+	updatedOrder, err := s.orderRepo.FindByID(ctx, order.ID)
+	assert.NoError(err)
+	assert.NotNil(updatedOrder)
+	assert.Equal(domain.StatusCompleted, updatedOrder.Status)
+}

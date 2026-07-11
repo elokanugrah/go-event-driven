@@ -28,6 +28,13 @@ type ProductRepository interface {
 type OrderRepository interface {
 	// Create
 	Save(ctx context.Context, order *domain.Order) error
+
+	// Read
+	FindByID(ctx context.Context, id int64) (*domain.Order, error)
+	FindAll(ctx context.Context, limit, offset int) ([]domain.Order, error)
+
+	// Update
+	Update(ctx context.Context, order *domain.Order) error
 }
 
 //go:generate mockery --name OutboxRepository --output ./mocks --case=snake

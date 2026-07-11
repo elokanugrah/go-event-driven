@@ -126,3 +126,33 @@ func (uc *OrderUseCase) CreateOrder(ctx context.Context, input dto.CreateOrderIn
 	return createdOrder, nil
 }
 
+// GetOrder retrieves a single order by its ID.
+func (uc *OrderUseCase) GetOrder(ctx context.Context, id int64) (*domain.Order, error) {
+	return uc.orderRepo.FindByID(ctx, id)
+}
+
+// ListOrders retrieves paginated list of orders.
+func (uc *OrderUseCase) ListOrders(ctx context.Context, limit, offset int) ([]domain.Order, error) {
+	if limit <= 0 {
+		limit = 10
+	}
+	if offset < 0 {
+		offset = 0
+	}
+	return uc.orderRepo.FindAll(ctx, limit, offset)
+}
+
+// UpdateOrderStatus modifies the order status.
+func (uc *OrderUseCase) UpdateOrderStatus(ctx context.Context, id int64, status domain.OrderStatus) error {
+	order, err := uc.orderRepo.FindByID(ctx, id)
+	if err != nil {
+		return err
+	}
+	if order == nil {
+		return errors.New("order not found")
+	}
+
+	order.ChangeStatus(status)
+	return uc.orderRepo.Update(ctx, order)
+}
+

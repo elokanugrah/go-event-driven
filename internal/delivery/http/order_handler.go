@@ -3,6 +3,7 @@ package http
 import (
 	"errors"
 	"net/http"
+	"strconv"
 
 	"github.com/elokanugrah/go-event-driven/internal/domain"
 	"github.com/elokanugrah/go-event-driven/internal/dto"
@@ -50,4 +51,50 @@ func (h *Handler) CreateOrder(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusCreated, createdOrder)
+}
+
+// GetOrder handles GET /api/v1/orders/:id
+func (h *Handler) GetOrder(c *gin.Context) {
+	idStr := c.Param("id")
+	id, err := strconv.ParseInt(idStr, 10, 64)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid order ID format"})
+		return
+	}
+
+	order, err := h.orderUseCase.GetOrder(c.Request.Context(), id)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get order: " + err.Error()})
+		return
+	}
+
+	if order == nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Order not found"})
+		return
+	}
+
+	c.JSON(http.StatusOK, order)
+}
+
+// ListOrders handles GET /api/v1/orders
+func (h *Handler) ListOrders(c *gin.Context) {
+	limitStr := c.DefaultQuery("limit", "10")
+	offsetStr := c.DefaultQuery("offset", "0")
+
+	limit, err := strconv.Atoi(limitStr)
+	if err != nil {
+		limit = 10
+	}
+	offset, err := strconv.Atoi(offsetStr)
+	if err != nil {
+		offset = 0
+	}
+
+	orders, err := h.orderUseCase.ListOrders(c.Request.Context(), limit, offset)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to list orders: " + err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, orders)
 }

@@ -328,3 +328,70 @@ func TestOrderUseCase_CreateOrder(t *testing.T) {
 		mockTxManager.AssertExpectations(t) // Ensure the On call was met
 	})
 }
+
+func TestOrderUseCase_GetOrder(t *testing.T) {
+	mockOrderRepo := new(mocks.OrderRepository)
+	orderUseCase := usecase.NewOrderUseCase(mockOrderRepo, nil, nil, nil)
+
+	t.Run("should retrieve order successfully when it exists", func(t *testing.T) {
+		expectedOrder := &domain.Order{ID: 1, UserID: 123, Status: domain.StatusPending}
+		mockOrderRepo.On("FindByID", mock.Anything, int64(1)).Return(expectedOrder, nil).Once()
+
+		order, err := orderUseCase.GetOrder(context.Background(), 1)
+		assert.NoError(t, err)
+		assert.Equal(t, expectedOrder, order)
+		mockOrderRepo.AssertExpectations(t)
+	})
+
+	t.Run("should return nil and no error when order does not exist", func(t *testing.T) {
+		mockOrderRepo.On("FindByID", mock.Anything, int64(999)).Return(nil, nil).Once()
+
+		order, err := orderUseCase.GetOrder(context.Background(), 999)
+		assert.NoError(t, err)
+		assert.Nil(t, order)
+		mockOrderRepo.AssertExpectations(t)
+	})
+}
+
+func TestOrderUseCase_ListOrders(t *testing.T) {
+	mockOrderRepo := new(mocks.OrderRepository)
+	orderUseCase := usecase.NewOrderUseCase(mockOrderRepo, nil, nil, nil)
+
+	t.Run("should retrieve list of orders successfully", func(t *testing.T) {
+		expectedOrders := []domain.Order{
+			{ID: 1, UserID: 123, Status: domain.StatusPending},
+			{ID: 2, UserID: 456, Status: domain.StatusCompleted},
+		}
+		mockOrderRepo.On("FindAll", mock.Anything, 10, 0).Return(expectedOrders, nil).Once()
+
+		orders, err := orderUseCase.ListOrders(context.Background(), 10, 0)
+		assert.NoError(t, err)
+		assert.Equal(t, expectedOrders, orders)
+		mockOrderRepo.AssertExpectations(t)
+	})
+}
+
+func TestOrderUseCase_UpdateOrderStatus(t *testing.T) {
+	mockOrderRepo := new(mocks.OrderRepository)
+	orderUseCase := usecase.NewOrderUseCase(mockOrderRepo, nil, nil, nil)
+
+	t.Run("should update order status successfully when order exists", func(t *testing.T) {
+		order := &domain.Order{ID: 1, UserID: 123, Status: domain.StatusPending}
+		mockOrderRepo.On("FindByID", mock.Anything, int64(1)).Return(order, nil).Once()
+		mockOrderRepo.On("Update", mock.Anything, mock.AnythingOfType("*domain.Order")).Return(nil).Once()
+
+		err := orderUseCase.UpdateOrderStatus(context.Background(), 1, domain.StatusCompleted)
+		assert.NoError(t, err)
+		assert.Equal(t, domain.StatusCompleted, order.Status)
+		mockOrderRepo.AssertExpectations(t)
+	})
+
+	t.Run("should return error when order does not exist", func(t *testing.T) {
+		mockOrderRepo.On("FindByID", mock.Anything, int64(999)).Return(nil, nil).Once()
+
+		err := orderUseCase.UpdateOrderStatus(context.Background(), 999, domain.StatusCompleted)
+		assert.Error(t, err)
+		assert.Equal(t, "order not found", err.Error())
+		mockOrderRepo.AssertExpectations(t)
+	})
+}

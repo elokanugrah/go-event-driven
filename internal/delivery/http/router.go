@@ -19,6 +19,8 @@ func SetupRouter(h *Handler) *gin.Engine {
 		orders := api.Group("/orders")
 		{
 			orders.POST("/", h.CreateOrder)
+			orders.GET("/", h.ListOrders)
+			orders.GET("/:id", h.GetOrder)
 		}
 	}
 

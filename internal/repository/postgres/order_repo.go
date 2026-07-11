@@ -112,3 +112,131 @@ func (r *PostgresOrderRepository) Save(ctx context.Context, order *domain.Order)
 
 	return nil
 }
+
+// FindByID retrieves a single order and its items from PostgreSQL.
+func (r *PostgresOrderRepository) FindByID(ctx context.Context, id int64) (*domain.Order, error) {
+	q := r.getQuerier(ctx)
+
+	query := `SELECT id, user_id, total_amount, status, created_at, updated_at FROM orders WHERE id = $1`
+	var order domain.Order
+	err := q.QueryRowContext(ctx, query, id).Scan(
+		&order.ID, &order.UserID, &order.TotalAmount, &order.Status, &order.CreatedAt, &order.UpdatedAt,
+	)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("error finding order: %w", err)
+	}
+
+	itemsQuery := `SELECT oi.id, oi.order_id, oi.quantity, oi.price_at_order, p.id, p.name, p.price, p.quantity, p.created_at, p.updated_at
+				   FROM order_items oi
+				   JOIN products p ON oi.product_id = p.id
+				   WHERE oi.order_id = $1`
+	rows, err := q.QueryContext(ctx, itemsQuery, id)
+	if err != nil {
+		return nil, fmt.Errorf("error finding order items: %w", err)
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var item domain.OrderItem
+		if err := rows.Scan(
+			&item.ID, &item.OrderID, &item.Quantity, &item.PriceAtOrder,
+			&item.Product.ID, &item.Product.Name, &item.Product.Price, &item.Product.Quantity, &item.Product.CreatedAt, &item.Product.UpdatedAt,
+		); err != nil {
+			return nil, fmt.Errorf("error scanning order item row: %w", err)
+		}
+		order.OrderItems = append(order.OrderItems, item)
+	}
+
+	return &order, nil
+}
+
+// FindAll retrieves paginated orders and their items.
+func (r *PostgresOrderRepository) FindAll(ctx context.Context, limit, offset int) ([]domain.Order, error) {
+	q := r.getQuerier(ctx)
+
+	query := `SELECT id, user_id, total_amount, status, created_at, updated_at 
+			  FROM orders 
+			  ORDER BY id DESC 
+			  LIMIT $1 OFFSET $2`
+
+	rows, err := q.QueryContext(ctx, query, limit, offset)
+	if err != nil {
+		return nil, fmt.Errorf("error listing orders: %w", err)
+	}
+	defer rows.Close()
+
+	var orders []domain.Order
+	for rows.Next() {
+		var order domain.Order
+		err := rows.Scan(
+			&order.ID, &order.UserID, &order.TotalAmount, &order.Status, &order.CreatedAt, &order.UpdatedAt,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("error scanning order row: %w", err)
+		}
+		orders = append(orders, order)
+	}
+
+	if len(orders) == 0 {
+		return orders, nil
+	}
+
+	// Fetch all items for the retrieved orders in one query.
+	var orderIDs []string
+	idMap := make(map[int64]int)
+	for i, o := range orders {
+		orderIDs = append(orderIDs, fmt.Sprintf("%d", o.ID))
+		idMap[o.ID] = i
+	}
+
+	itemsQuery := fmt.Sprintf(`
+		SELECT oi.id, oi.order_id, oi.quantity, oi.price_at_order, p.id, p.name, p.price, p.quantity, p.created_at, p.updated_at
+		FROM order_items oi
+		JOIN products p ON oi.product_id = p.id
+		WHERE oi.order_id IN (%s)
+	`, strings.Join(orderIDs, ","))
+
+	itemRows, err := q.QueryContext(ctx, itemsQuery)
+	if err != nil {
+		return nil, fmt.Errorf("error querying order items list: %w", err)
+	}
+	defer itemRows.Close()
+
+	for itemRows.Next() {
+		var item domain.OrderItem
+		if err := itemRows.Scan(
+			&item.ID, &item.OrderID, &item.Quantity, &item.PriceAtOrder,
+			&item.Product.ID, &item.Product.Name, &item.Product.Price, &item.Product.Quantity, &item.Product.CreatedAt, &item.Product.UpdatedAt,
+		); err != nil {
+			return nil, fmt.Errorf("error scanning order item row: %w", err)
+		}
+		idx := idMap[item.OrderID]
+		orders[idx].OrderItems = append(orders[idx].OrderItems, item)
+	}
+
+	return orders, nil
+}
+
+// Update updates an order's status and updated timestamp.
+func (r *PostgresOrderRepository) Update(ctx context.Context, order *domain.Order) error {
+	q := r.getQuerier(ctx)
+
+	query := `UPDATE orders SET status = $1, updated_at = $2 WHERE id = $3`
+	result, err := q.ExecContext(ctx, query, order.Status, time.Now(), order.ID)
+	if err != nil {
+		return fmt.Errorf("error updating order: %w", err)
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("error checking rows affected: %w", err)
+	}
+	if rowsAffected == 0 {
+		return errors.New("order not found for update")
+	}
+
+	return nil
+}

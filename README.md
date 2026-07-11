@@ -198,11 +198,13 @@ The API service is now listening at `http://localhost:9000`.
 ### Orders
 | Method | Endpoint | Description |
 | :--- | :--- | :--- |
-| `POST` | `/api/v1/orders` | Creates a new order transactionally and queues an outbox event |
+| `POST` | `/api/v1/orders/` | Creates a new order transactionally and queues an outbox event (status initially `pending`) |
+| `GET` | `/api/v1/orders/` | Retrieve a list of all orders and their current processing status |
+| `GET` | `/api/v1/orders/{id}`| Get detailed breakdown and status (e.g., `completed`, `cancelled`) of a single order |
 
-**Test Order Creation Request**:
+**1. Create a New Order**:
 ```bash
-curl -X POST http://localhost:9000/api/v1/orders \
+curl -X POST http://localhost:9000/api/v1/orders/ \
 -H "Content-Type: application/json" \
 -d '{
     "user_id": 123,
@@ -213,6 +215,18 @@ curl -X POST http://localhost:9000/api/v1/orders \
         }
     ]
 }'
+```
+*Note: This immediately returns a `201 Created` response with `"status": "pending"` because processing happens asynchronously in the background.*
+
+**2. Query Order Status & Details (Wait 2 seconds first!)**:
+```bash
+curl http://localhost:9000/api/v1/orders/1
+```
+*Response will show `"status": "completed"` (or `"status": "cancelled"` if a simulated failure occurred).*
+
+**3. List All Orders**:
+```bash
+curl http://localhost:9000/api/v1/orders/
 ```
 
 ---
